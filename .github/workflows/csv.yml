@@ -7,6 +7,9 @@ on:
     paths:
       - 'master-feed/**'
 
+permissions:
+  contents: write
+
 jobs:
   convert:
     runs-on: ubuntu-latest
@@ -17,17 +20,19 @@ jobs:
 
       - name: Convert files to CSV
         run: |
-          mkdir -p output
+          mkdir -p csv-output
 
           for file in master-feed/*; do
             if [ -f "$file" ]; then
               filename=$(basename "$file")
-              sed 's/|/,/g' "$file" > "output/${filename%.*}.csv"
+              sed 's/|/,/g' "$file" > "csv-output/${filename%.*}.csv"
             fi
           done
 
-      - name: Upload CSV
-        uses: actions/upload-artifact@v4
-        with:
-          name: csv-files
-          path: output/
+      - name: Verify Output
+        run: |
+          ls -l csv-output
+
+      - name: Commit CSV files
+        run: |
+          git config --global user.name "github-actions"
