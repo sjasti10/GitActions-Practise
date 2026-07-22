@@ -1,44 +1,119 @@
-name: Convert Feed to CSV
+name: Rename and Convert to CSV
+
+
 
 on:
+
   push:
+
     branches:
+
       - master
+
     paths:
+
       - 'master-feed/**'
 
+
+
 permissions:
+
   contents: write
 
+
+
 jobs:
-  convert:
+
+  process:
+
     runs-on: ubuntu-latest
 
+
+
     steps:
+
       - name: Checkout Repository
+
         uses: actions/checkout@v4
 
-      - name: Convert files to CSV
+
+
+      - name: Rename and Convert Files
+
         run: |
+
+          TODAY=$(date +%Y%m%d)
+
+
+
           for file in master-feed/*; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file")
-              sed 's/|/,/g' "$file" > "master-feed/${filename%.*}.csv"
+
+
+
+            [ ! -f "$file" ] && continue
+
+
+
+            filename=$(basename "$file")
+
+            extension="${filename##*.}"
+
+            basename="${filename%.*}"
+
+
+
+            # Skip already processed files
+
+            if [[ "$filename" == *.csv ]] || [[ "$basename" =~ _[0-9]{8}$ ]]; then
+
+              continue
+
             fi
+
+
+
+            renamed_file="master-feed/${basename}_${TODAY}.${extension}"
+
+
+
+            mv "$file" "$renamed_file"
+
+
+
+            sed 's/|/,/g' "$renamed_file" > "master-feed/${basename}_${TODAY}.csv"
+
+
+
           done
 
+
+
       - name: Configure Git
+
         run: |
+
           git config --global user.name "github-actions[bot]"
+
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit and Push CSV
+
+
+      - name: Commit and Push Changes
+
         run: |
-          git add master-feed/*.csv
+
+          git add master-feed/*
+
+
 
           if git diff --staged --quiet; then
+
             echo "No changes to commit"
+
           else
-            git commit -m "Generate CSV files"
-            git push
+
+            git commit -m "Auto rename and CSV conversion"
+
+            git push origin master
+
           fi
