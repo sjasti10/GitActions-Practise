@@ -20,19 +20,25 @@ jobs:
 
       - name: Convert files to CSV
         run: |
-          mkdir -p csv-output
-
           for file in master-feed/*; do
             if [ -f "$file" ]; then
               filename=$(basename "$file")
-              sed 's/|/,/g' "$file" > "csv-output/${filename%.*}.csv"
+              sed 's/|/,/g' "$file" > "master-feed/${filename%.*}.csv"
             fi
           done
 
-      - name: Verify Output
+      - name: Configure Git
         run: |
-          ls -l csv-output
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit CSV files
+      - name: Commit and Push CSV
         run: |
-          git config --global user.name "github-actions"
+          git add master-feed/*.csv
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Generate CSV files"
+            git push
+          fi
