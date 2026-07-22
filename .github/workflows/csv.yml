@@ -1,0 +1,33 @@
+name: Convert Feed to CSV
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'master-feed/**'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Convert files to CSV
+        run: |
+          mkdir -p output
+
+          for file in master-feed/*; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              sed 's/|/,/g' "$file" > "output/${filename%.*}.csv"
+            fi
+          done
+
+      - name: Upload CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: csv-files
+          path: output/
